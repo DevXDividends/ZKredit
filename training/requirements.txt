@@ -1,0 +1,10 @@
+torch==2.13.0
+onnx==1.17.0
+onnxscript==0.2.2
+scikit-learn==1.5.2
+pandas==2.2.3
+numpy==1.26.4
+
+# EZKL — only needed once you're running the Phase 3 circuit-compilation /
+# proof-generation steps in circuits/. Not required just to train the model.
+ezkl==23.0.5

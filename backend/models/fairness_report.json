@@ -1,0 +1,153 @@
+{
+  "person_gender": {
+    "group_column": "person_gender",
+    "overall_approval_rate": 0.2222222222222222,
+    "groups": [
+      {
+        "group": "female",
+        "count": 20159,
+        "approval_rate": 0.22248127387271194,
+        "statistical_parity_difference": 0.0002590516504897278,
+        "spd_flag": false
+      },
+      {
+        "group": "male",
+        "count": 24841,
+        "approval_rate": 0.22201199629644539,
+        "statistical_parity_difference": -0.00021022592577682464,
+        "spd_flag": false
+      }
+    ],
+    "disparate_impact_ratio": 0.9978907097748144,
+    "disparate_impact_flag": false
+  },
+  "person_education": {
+    "group_column": "person_education",
+    "overall_approval_rate": 0.2222222222222222,
+    "groups": [
+      {
+        "group": "Associate",
+        "count": 12028,
+        "approval_rate": 0.22031925507149983,
+        "statistical_parity_difference": -0.0019029671507223844,
+        "spd_flag": false
+      },
+      {
+        "group": "Bachelor",
+        "count": 13399,
+        "approval_rate": 0.22524068960370178,
+        "statistical_parity_difference": 0.003018467381479567,
+        "spd_flag": false
+      },
+      {
+        "group": "Doctorate",
+        "count": 621,
+        "approval_rate": 0.2286634460547504,
+        "statistical_parity_difference": 0.006441223832528181,
+        "spd_flag": false
+      },
+      {
+        "group": "High School",
+        "count": 11972,
+        "approval_rate": 0.223103909121283,
+        "statistical_parity_difference": 0.0008816868990607907,
+        "spd_flag": false
+      },
+      {
+        "group": "Master",
+        "count": 6980,
+        "approval_rate": 0.21762177650429798,
+        "statistical_parity_difference": -0.004600445717924229,
+        "spd_flag": false
+      }
+    ],
+    "disparate_impact_ratio": 0.9517121352758384,
+    "disparate_impact_flag": false
+  },
+  "loan_intent": {
+    "group_column": "loan_intent",
+    "overall_approval_rate": 0.2222222222222222,
+    "groups": [
+      {
+        "group": "DEBTCONSOLIDATION",
+        "count": 7145,
+        "approval_rate": 0.3027291812456263,
+        "statistical_parity_difference": 0.0805069590234041,
+        "spd_flag": false
+      },
+      {
+        "group": "EDUCATION",
+        "count": 9153,
+        "approval_rate": 0.16956189227575658,
+        "statistical_parity_difference": -0.052660329946465634,
+        "spd_flag": false
+      },
+      {
+        "group": "HOMEIMPROVEMENT",
+        "count": 4783,
+        "approval_rate": 0.2630148442400167,
+        "statistical_parity_difference": 0.04079262201779449,
+        "spd_flag": false
+      },
+      {
+        "group": "MEDICAL",
+        "count": 8548,
+        "approval_rate": 0.2781937295273748,
+        "statistical_parity_difference": 0.0559715073051526,
+        "spd_flag": false
+      },
+      {
+        "group": "PERSONAL",
+        "count": 7552,
+        "approval_rate": 0.20140360169491525,
+        "statistical_parity_difference": -0.020818620527306958,
+        "spd_flag": false
+      },
+      {
+        "group": "VENTURE",
+        "count": 7819,
+        "approval_rate": 0.144263972374984,
+        "statistical_parity_difference": -0.0779582498472382,
+        "spd_flag": false
+      }
+    ],
+    "disparate_impact_ratio": 0.47654465215869657,
+    "disparate_impact_flag": true
+  },
+  "person_home_ownership": {
+    "group_column": "person_home_ownership",
+    "overall_approval_rate": 0.2222222222222222,
+    "groups": [
+      {
+        "group": "MORTGAGE",
+        "count": 18489,
+        "approval_rate": 0.11596084158148089,
+        "statistical_parity_difference": -0.10626138064074132,
+        "spd_flag": true
+      },
+      {
+        "group": "OTHER",
+        "count": 117,
+        "approval_rate": 0.3333333333333333,
+        "statistical_parity_difference": 0.1111111111111111,
+        "spd_flag": true
+      },
+      {
+        "group": "OWN",
+        "count": 2951,
+        "approval_rate": 0.07522873602168756,
+        "statistical_parity_difference": -0.14699348620053465,
+        "spd_flag": true
+      },
+      {
+        "group": "RENT",
+        "count": 23443,
+        "approval_rate": 0.3239773066587041,
+        "statistical_parity_difference": 0.1017550844364819,
+        "spd_flag": true
+      }
+    ],
+    "disparate_impact_ratio": 0.22568620806506268,
+    "disparate_impact_flag": true
+  }
+}

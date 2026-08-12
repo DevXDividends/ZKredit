@@ -1,0 +1,34 @@
+{
+  "person_age": {
+    "min": 20.0,
+    "max": 144.0
+  },
+  "person_income": {
+    "min": 8000.0,
+    "max": 7200766.0
+  },
+  "person_emp_exp": {
+    "min": 0.0,
+    "max": 125.0
+  },
+  "loan_amnt": {
+    "min": 500.0,
+    "max": 35000.0
+  },
+  "loan_int_rate": {
+    "min": 5.42,
+    "max": 20.0
+  },
+  "loan_percent_income": {
+    "min": 0.0,
+    "max": 0.66
+  },
+  "cb_person_cred_hist_length": {
+    "min": 2.0,
+    "max": 30.0
+  },
+  "credit_score": {
+    "min": 390.0,
+    "max": 850.0
+  }
+}

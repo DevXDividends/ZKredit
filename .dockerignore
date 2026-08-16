@@ -1,0 +1,22 @@
+.git
+.gitignore
+*.md
+README.md
+
+# Backend build context excludes (context is repo root for backend build)
+frontend/node_modules
+frontend/dist
+contracts/lib
+contracts/out
+contracts/cache
+training/venv
+backend/venv
+**/__pycache__
+**/*.pyc
+*.db
+
+# Large circuit artifacts — mounted as a volume at runtime instead, see
+# docker-compose.yml. Never want these baked into an image layer.
+circuits/*/pk.key
+circuits/*/witness.json
+circuits/*/kzg*.srs

@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Circuit artifacts (settings.json, model.compiled, vk.key, and your
+      # locally-generated pk.key) — mounted read-only so proof generation
+      # works without baking the (large, model-specific) pk.key into the image.
+      - ./circuits:/app/circuits:ro
+      # Persists the SQLite DB and the KZG SRS cache across container restarts,
+      # so you don't re-download the SRS (~few hundred MB) every time.
+      - backend_data:/app/data
+      - ezkl_srs_cache:/root/.ezkl
+    environment:
+      - CIRCUIT_DIR=/app/circuits/loan_model
+      - DATABASE_URL=sqlite:////app/data/zkredit.db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_data:
+  ezkl_srs_cache:

@@ -5,6 +5,7 @@ from app.database import get_db
 from app.db_models import Application, ProofRecord
 from app.schemas import LoanApplicationCreate, ApplicationResponse, ApplicationDetail, ProofGenerateResponse
 from app.inference import get_model
+from app.proof_pipeline import generate_proof_for_application, ProofPipelineError
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -61,23 +62,45 @@ def list_applications(db: Session = Depends(get_db)):
 
 @router.post("/{application_id}/generate-proof", response_model=ProofGenerateResponse)
 def generate_proof(application_id: str, db: Session = Depends(get_db)):
-    """Stub for the EZKL proof pipeline (Phase 3). Currently marks the
-    application as 'pending' — swap this function's body for the real
-    ezkl.gen_witness / prove / verify calls once that pipeline is unblocked."""
+    """Runs the real EZKL pipeline for this application: preprocesses its data
+    exactly like inference did, generates a witness, proves, and verifies —
+    all locally (not yet submitted on-chain — that's a separate future step).
+    Reuses the model's fixed proving/verifying keys generated once via
+    training/generate_proof.py."""
     row = db.query(Application).filter(Application.id == application_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    # TODO(Phase 3 integration): call ezkl gen_witness -> prove -> verify here,
-    # using row.raw_input run through inference.LoanModel.preprocess() as the
-    # circuit's private input, save the resulting proof.json, and update
-    # row.proof_path + row.proof_status = "generated".
     row.proof_status = "pending"
-    db.add(ProofRecord(application_id=row.id, status="pending", detail="ZK pipeline not yet integrated"))
     db.commit()
+
+    try:
+        result = generate_proof_for_application(row.id, row.raw_input)
+    except ProofPipelineError as e:
+        row.proof_status = "failed"
+        db.add(ProofRecord(application_id=row.id, status="failed", detail=str(e)))
+        db.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    row.proof_status = "proven" if result["verified"] else "failed"
+    row.proof_path = result["proof_path"]
+    db.add(ProofRecord(
+        application_id=row.id,
+        status="success" if result["verified"] else "failed",
+        detail=f"Proved and verified locally in {result['elapsed_seconds']}s",
+    ))
+    db.commit()
+    db.refresh(row)
+
+    message = (
+        f"Proof generated and verified locally in {result['elapsed_seconds']}s. "
+        "Not yet submitted on-chain."
+        if result["verified"]
+        else "Proof was generated but local verification failed."
+    )
 
     return ProofGenerateResponse(
         application_id=row.id,
         proof_status=row.proof_status,
-        message="Proof generation is stubbed — ZK pipeline integration pending (Phase 3).",
+        message=message,
     )

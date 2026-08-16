@@ -24,6 +24,17 @@ app.add_middleware(
 app.include_router(applications.router)
 app.include_router(bank.router)
 app.include_router(fairness.router)
+@app.on_event("startup")
+async def ensure_srs_cached():
+    """Pre-warms the KZG SRS cache so the first /generate-proof call isn't
+    slow. Safe to call every startup — it's a fast no-op if already cached.
+    Failures here are logged, not fatal — inference/other endpoints still
+    work fine without it; only proof generation needs the SRS."""
+    try:
+        from app.proof_pipeline import ensure_srs_downloaded
+        await ensure_srs_downloaded()
+    except Exception as e:
+        print(f"[startup] SRS pre-warm skipped: {e}")
 
 
 @app.get("/")

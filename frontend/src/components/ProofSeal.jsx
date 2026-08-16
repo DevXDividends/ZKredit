@@ -1,7 +1,7 @@
 const STATES = {
   not_started: { label: "Unproven", color: "text-paper-dim border-ink-border", dot: "bg-paper-dim" },
   pending: { label: "Proof Pending", color: "text-seal-light border-seal-dim", dot: "bg-seal animate-pulse" },
-  generated: { label: "Proof Generated", color: "text-seal-light border-seal-dim", dot: "bg-seal" },
+  proven: { label: "Proof Verified (Off-Chain)", color: "text-seal-light border-seal-dim", dot: "bg-seal" },
   verified: { label: "Verified On-Chain", color: "text-approve border-approve/40", dot: "bg-approve" },
   failed: { label: "Verification Failed", color: "text-reject border-reject/40", dot: "bg-reject" },
 };

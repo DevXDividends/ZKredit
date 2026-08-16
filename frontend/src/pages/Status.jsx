@@ -82,13 +82,13 @@ export default function Status() {
             <div className="text-xs text-paper-muted font-mono mb-2">Proof status</div>
             <ProofSeal status={app.proof_status} />
           </div>
-          {app.proof_status === "not_started" && (
+          {(app.proof_status === "not_started" || app.proof_status === "failed") && (
             <button
               onClick={handleGenerateProof}
               disabled={generating}
               className="px-4 py-2 border border-seal-dim text-seal-light text-sm rounded hover:bg-seal/10 transition-colors disabled:opacity-50"
             >
-              {generating ? "Requesting…" : "Request proof"}
+              {generating ? "Proving… (may take a minute)" : app.proof_status === "failed" ? "Retry proof" : "Generate proof"}
             </button>
           )}
         </div>
@@ -96,9 +96,13 @@ export default function Status() {
 
       <div className="text-sm text-paper-dim font-mono leading-relaxed">
         {app.proof_status === "not_started" &&
-          "This decision hasn't been backed by an on-chain proof yet. Requesting one asks the bank's circuit to attest that its registered model produced this exact result."}
+          "This decision hasn't been backed by a proof yet. Requesting one runs the bank's real ZK circuit — a genuine proof, not a simulation — and can take a minute or two."}
         {app.proof_status === "pending" &&
-          "Proof generation is in progress. The ZK proving pipeline is still being wired up in this build — check back once Phase 3 is complete."}
+          "Generating and verifying the proof now (witness → prove → verify). This runs the real EZKL pipeline and can take a minute or two."}
+        {app.proof_status === "proven" &&
+          "A real zero-knowledge proof was generated and verified locally — this confirms the bank's registered model produced this exact decision. Not yet submitted on-chain."}
+        {app.proof_status === "failed" &&
+          "Proof generation or verification failed. This can happen if the circuit artifacts are missing or the proving pipeline hit an error — check the backend logs."}
       </div>
     </div>
   );

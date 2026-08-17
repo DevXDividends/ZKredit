@@ -1,34 +1,56 @@
+# ==============================
 # Python
+# ==============================
 venv/
-*/venv/
+.venv/
 __pycache__/
-*.pyc
+*.py[cod]
 *.egg-info/
 
+# Backend Python environment
+backend/venv/
+backend/.venv/
+
+# Training Python environment
+training/venv/
+training/.venv/
+
+
+# ==============================
 # Backend runtime
+# ==============================
 backend/zkredit.db
 *.db
 
-# Node / frontend
+
+# ==============================
+# Node / Frontend
+# ==============================
 frontend/node_modules/
 frontend/dist/
 frontend/.env
 
+
+# ==============================
 # Foundry
+# ==============================
 contracts/cache/
 contracts/out/
 contracts/lib/
 
+
+# ==============================
 # EZKL circuit build artifacts
-# pk.key (proving key, ~150MB+) and the KZG SRS file are large and
-# environment-specific — never commit these. vk.key, proof.json, and
-# model.compiled are small (<100KB) and are committed as real, reusable
-# artifacts.
+# ==============================
+# Large/environment-specific artifacts
 circuits/*/pk.key
 circuits/*/witness.json
 circuits/*/kzg*.srs
 
-# OS / editor
+
+# ==============================
+# OS / Editor
+# ==============================
 .DS_Store
 .vscode/
 *.swp

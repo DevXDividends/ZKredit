@@ -1,0 +1,18 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.24"
+via_ir = true
+optimizer = true
+optimizer_runs = 1
+
+# Verifier.sol (EZKL-generated) is a single massive assembly block that hits
+# "stack too deep" under the normal Yul optimizer, even with via_ir. Disabling
+# just the Yul optimizer sub-passes (keeping viaIR + the regular optimizer)
+# is what let it compile — found by testing several solc versions and
+# optimizer combinations; see contracts/README.md.
+[profile.default.optimizer_details]
+yul = false
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

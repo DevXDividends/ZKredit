@@ -19,13 +19,12 @@ contracts/cache/
 contracts/out/
 contracts/lib/
 
-# EZKL circuit build artifacts (regenerable — settings.json/model.compiled etc.
-# are cheap to rebuild from the ONNX model; SRS/proving keys are large and
-# environment-specific, so don't commit them)
-circuits/*/*.compiled
+# EZKL circuit build artifacts
+# pk.key (proving key, ~150MB+) and the KZG SRS file are large and
+# environment-specific — never commit these. vk.key, proof.json, and
+# model.compiled are small (<100KB) and are committed as real, reusable
+# artifacts.
 circuits/*/pk.key
-circuits/*/vk.key
-circuits/*/proof.json
 circuits/*/witness.json
 circuits/*/kzg*.srs
 

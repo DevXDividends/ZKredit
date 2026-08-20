@@ -18,7 +18,9 @@ export const api = {
   getApplication: (id) => request(`/applications/${id}`),
   listApplications: () => request("/applications"),
   generateProof: (id) => request(`/applications/${id}/generate-proof`, { method: "POST" }),
+  runTamperDemo: (id) => request(`/applications/${id}/tamper-demo`, { method: "POST" }),
   bankSummary: () => request("/bank/summary"),
   bankApplications: () => request("/bank/applications"),
   fairnessReport: () => request("/fairness/report"),
 };
+

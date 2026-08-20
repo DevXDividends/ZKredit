@@ -91,3 +91,69 @@ def generate_proof_for_application(application_id: str, raw_input: dict) -> dict
         "proof_path": proof_path,
         "elapsed_seconds": round(elapsed, 2),
     }
+
+
+def run_tamper_demo(application_id: str) -> dict:
+    """Educational demo, not a security feature: takes this application's
+    already-generated real proof, corrupts one byte in a COPY of it, and
+    re-runs verification to show it genuinely fails. This exists because a
+    legitimately-generated proof will always verify successfully (that's the
+    point of a ZK proof) — so without this, users never see what a failed
+    verification looks like and can't tell the check is doing real work."""
+    app_dir = os.path.join(PROOFS_DIR, application_id)
+    real_proof_path = os.path.join(app_dir, "proof.json")
+
+    if not os.path.exists(real_proof_path):
+        raise ProofPipelineError(
+            "No generated proof found for this application yet. Generate a proof first."
+        )
+
+    with open(real_proof_path) as f:
+        proof_data = json.load(f)
+
+    tampered_path = os.path.join(app_dir, "proof_tampered_demo.json")
+    tampered_data = json.loads(json.dumps(proof_data))  # deep copy
+
+    # IMPORTANT: proof.json has TWO representations of the same proof bytes —
+    # "proof" (a JSON list of ints, the raw bytes ezkl.verify() actually
+    # deserializes) and "hex_proof" (a "0x..." string, a convenience export
+    # mainly used for EVM/Solidity calldata). Tampering only hex_proof does
+    # nothing to local verification — "proof" is the field that matters here.
+    # We flip a byte in both, so this stays correct regardless of which
+    # field a given ezkl version actually reads.
+    tampered_something = False
+
+    proof_bytes = tampered_data.get("proof")
+    if isinstance(proof_bytes, list) and len(proof_bytes) > 0:
+        mid = len(proof_bytes) // 2
+        proof_bytes[mid] = proof_bytes[mid] ^ 0xFF  # flip all bits of one byte
+        tampered_data["proof"] = proof_bytes
+        tampered_something = True
+
+    proof_hex = tampered_data.get("hex_proof")
+    if isinstance(proof_hex, str) and len(proof_hex) > 0:
+        prefix = "0x" if proof_hex.startswith("0x") else ""
+        body = proof_hex[len(prefix):]
+        mid = len(body) // 2
+        flipped_char = "0" if body[mid] != "0" else "1"
+        tampered_data["hex_proof"] = prefix + body[:mid] + flipped_char + body[mid + 1:]
+        tampered_something = True
+
+    if not tampered_something:
+        raise ProofPipelineError("Unexpected proof format — can't run tamper demo.")
+
+    with open(tampered_path, "w") as f:
+        json.dump(tampered_data, f)
+
+    try:
+        tampered_result = ezkl.verify(tampered_path, SETTINGS_PATH, VK_PATH)
+    except Exception:
+        tampered_result = False  # ezkl raises on malformed/invalid proofs — that's also a "fails to verify"
+
+    # Re-confirm the real proof still verifies fine, for side-by-side comparison.
+    real_result = ezkl.verify(real_proof_path, SETTINGS_PATH, VK_PATH)
+
+    return {
+        "real_proof_verified": bool(real_result),
+        "tampered_proof_verified": bool(tampered_result),
+    }

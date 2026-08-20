@@ -5,7 +5,7 @@ from app.database import get_db
 from app.db_models import Application, ProofRecord
 from app.schemas import LoanApplicationCreate, ApplicationResponse, ApplicationDetail, ProofGenerateResponse
 from app.inference import get_model
-from app.proof_pipeline import generate_proof_for_application, ProofPipelineError
+from app.proof_pipeline import generate_proof_for_application, run_tamper_demo, ProofPipelineError
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -104,3 +104,28 @@ def generate_proof(application_id: str, db: Session = Depends(get_db)):
         proof_status=row.proof_status,
         message=message,
     )
+
+
+@router.post("/{application_id}/tamper-demo")
+def tamper_demo(application_id: str, db: Session = Depends(get_db)):
+    """Educational endpoint, not a security feature. A legitimately-generated
+    ZK proof always verifies successfully — that's the point of the system,
+    not a bug — so without this, users never see a failing verification and
+    can't tell the check is doing real work. This takes the application's
+    already-generated real proof, corrupts a COPY of it (flips one byte),
+    and re-verifies both side by side so the difference is visible."""
+    row = db.query(Application).filter(Application.id == application_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+    if row.proof_status not in ("proven", "verified"):
+        raise HTTPException(
+            status_code=400,
+            detail="Generate a proof for this application first before running the tamper demo.",
+        )
+
+    try:
+        result = run_tamper_demo(row.id)
+    except ProofPipelineError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return result

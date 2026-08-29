@@ -2,8 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routers import applications, bank, fairness
-
+from app.routers import applications, bank, fairness, auth
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -21,6 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(applications.router)
 app.include_router(bank.router)
 app.include_router(fairness.router)

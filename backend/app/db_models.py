@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, Float, Integer, DateTime, JSON, ForeignKey
+from sqlalchemy import Column, String, Float, Integer, DateTime, JSON, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -9,6 +9,26 @@ from app.database import Base
 
 def gen_uuid():
     return str(uuid.uuid4())
+
+
+class User(Base):
+    """An applicant account. Supports two sign-in methods: email+password
+    (hashed_password set, auth_provider='local') and Google OAuth
+    (google_id set, auth_provider='google'). A user could in principle have
+    both set if they link Google to an existing local account by signing
+    in with Google using the same email."""
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    email = Column(String, unique=True, nullable=False, index=True)
+    full_name = Column(String, nullable=True)
+    hashed_password = Column(String, nullable=True)  # null for Google-only accounts
+    google_id = Column(String, unique=True, nullable=True, index=True)
+    auth_provider = Column(String, default="local")  # "local" | "google"
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    applications = relationship("Application", back_populates="user")
 
 
 class Application(Base):
@@ -19,6 +39,7 @@ class Application(Base):
     __tablename__ = "applications"
 
     id = Column(String, primary_key=True, default=gen_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
     bank_id = Column(String, default="demo-bank")
     model_version_id = Column(Integer, default=1)
 
@@ -29,14 +50,15 @@ class Application(Base):
     prediction_score = Column(Float, nullable=True)     # sigmoid output, 0-1
     decision = Column(String, nullable=True)             # "Approved" / "Rejected"
 
-    # ZK proof pipeline status — filled in once Phase 3 (EZKL) is integrated
-    proof_status = Column(String, default="not_started")  # not_started | pending | generated | verified | failed
+    # ZK proof pipeline status
+    proof_status = Column(String, default="not_started")  # not_started | pending | proven | verified | failed
     proof_path = Column(String, nullable=True)
     onchain_tx_hash = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    user = relationship("User", back_populates="applications")
     proofs = relationship("ProofRecord", back_populates="application")
 
 

@@ -54,3 +54,5 @@ circuits/*/kzg*.srs
 .DS_Store
 .vscode/
 *.swp
+backend/.env
+.env

@@ -1,23 +1,23 @@
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-sqlalchemy==2.0.35
-pydantic==2.9.2
-onnxruntime==1.19.2
-numpy==1.26.4
-python-multipart==0.0.9
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+onnxruntime
+numpy
+python-multipart
 
 # Auth: JWT + password hashing + Google OAuth token verification
-python-jose[cryptography]==3.3.0
-bcrypt==4.2.0
-google-auth==2.34.0
-email-validator==2.2.0
+python-jose[cryptography]
+bcrypt
+google-auth
+email-validator
 
 # Postgres driver (used when DATABASE_URL points at postgres, e.g. in Docker)
-psycopg2-binary==2.9.9
+psycopg2-binary
 
 # For real ZK proof generation (POST /applications/{id}/generate-proof).
 # This does make the backend heavier than a pure-inference service — that's
 # an intentional tradeoff for this project's scope. See README for splitting
 # this into a separate "prover" service later if needed.
-ezkl==23.0.5
+ezkl
 requests

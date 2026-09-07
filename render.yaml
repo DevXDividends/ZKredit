@@ -14,5 +14,9 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
       - key: CIRCUIT_DIR
         value: /app/circuits/loan_model
+      - key: PK_KEY_URL
+        value: https://github.com/DevXDividends/ZKredit/releases/download/circuit-v1/pk.key

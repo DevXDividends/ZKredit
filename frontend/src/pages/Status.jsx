@@ -10,14 +10,46 @@ import LiveLogConsole from "../components/LiveLogConsole";
 import useLiveLog from "../hooks/useLiveLog";
 
 const PROOF_STEPS = [
-  { text: "Loading application inputs into circuit witness generator…", type: "info", delay: 250 },
-  { text: "Building witness (14,208 constraint gates)…", type: "info", delay: 900 },
-  { text: "Witness commitment computed and pinned locally.", type: "success", delay: 700 },
-  { text: "Loading bank's registered model circuit (EZKL backend)…", type: "info", delay: 650 },
-  { text: "Generating zk-SNARK proof from witness…", type: "info", delay: 1400 },
-  { text: "Proof generated — running local verification pass…", type: "info", delay: 900 },
-  { text: "Local verification passed. Broadcasting to peers…", type: "success", delay: 700 },
-  { text: "Peers confirmed proof validity across the mesh.", type: "success", delay: 600 },
+  {
+    text: "Loading application inputs into circuit witness generator…",
+    type: "info",
+    delay: 250,
+  },
+  {
+    text: "Building witness (14,208 constraint gates)…",
+    type: "info",
+    delay: 900,
+  },
+  {
+    text: "Witness commitment computed and pinned locally.",
+    type: "success",
+    delay: 700,
+  },
+  {
+    text: "Loading bank's registered model circuit (EZKL backend)…",
+    type: "info",
+    delay: 650,
+  },
+  {
+    text: "Generating zk-SNARK proof from witness…",
+    type: "info",
+    delay: 1400,
+  },
+  {
+    text: "Proof generated — running local verification pass…",
+    type: "info",
+    delay: 900,
+  },
+  {
+    text: "Local verification passed. Broadcasting to peers…",
+    type: "success",
+    delay: 700,
+  },
+  {
+    text: "Peers confirmed proof validity across the mesh.",
+    type: "success",
+    delay: 600,
+  },
 ];
 
 function ConfidenceGauge({ value, approved }) {
@@ -30,7 +62,14 @@ function ConfidenceGauge({ value, approved }) {
   return (
     <div className="relative w-28 h-28 shrink-0">
       <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-        <circle cx="50" cy="50" r={radius} fill="none" stroke="#232323" strokeWidth="6" />
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke="#232323"
+          strokeWidth="6"
+        />
         <motion.circle
           cx="50"
           cy="50"
@@ -46,8 +85,12 @@ function ConfidenceGauge({ value, approved }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono text-xl text-paper">{(pct * 100).toFixed(0)}%</span>
-        <span className="font-mono text-[9px] text-paper-dim tracking-wide uppercase">confidence</span>
+        <span className="font-mono text-xl text-paper">
+          {(pct * 100).toFixed(0)}%
+        </span>
+        <span className="font-mono text-[9px] text-paper-dim tracking-wide uppercase">
+          confidence
+        </span>
       </div>
     </div>
   );
@@ -58,9 +101,15 @@ function DecisionSeal({ approved, statusKey }) {
   const border = approved ? "border-approve/50" : "border-reject/50";
   return (
     <div key={statusKey} className="relative w-24 h-24 shrink-0 animate-stamp">
-      <div className={`absolute inset-0 rounded-full seal-ring-thin ${color}`} />
-      <div className={`absolute inset-2 rounded-full border-2 ${border} flex items-center justify-center`}>
-        <span className={`font-display text-[11px] tracking-widest uppercase ${color} rotate-[-8deg]`}>
+      <div
+        className={`absolute inset-0 rounded-full seal-ring-thin ${color}`}
+      />
+      <div
+        className={`absolute inset-2 rounded-full border-2 ${border} flex items-center justify-center`}
+      >
+        <span
+          className={`font-display text-[11px] tracking-widest uppercase ${color} rotate-[-8deg]`}
+        >
           {approved ? "Approved" : "Rejected"}
         </span>
       </div>
@@ -90,7 +139,9 @@ function PipelineTracker({ status }) {
                   reached ? "bg-paper" : "bg-ink-border"
                 }`}
               />
-              <span className={`text-[10px] font-mono uppercase tracking-wide ${reached ? "text-paper-muted" : "text-paper-dim"}`}>
+              <span
+                className={`text-[10px] font-mono uppercase tracking-wide ${reached ? "text-paper-muted" : "text-paper-dim"}`}
+              >
                 {s.label}
               </span>
             </div>
@@ -137,12 +188,16 @@ function TamperDemo({ applicationId, enabled }) {
       animate={{ opacity: 1, y: 0 }}
       className="border border-ink-border rounded-2xl bg-ink-surface p-6 mt-6"
     >
-      <h3 className="font-display text-lg text-paper mb-2">See verification actually fail</h3>
+      <h3 className="font-display text-lg text-paper mb-2">
+        See verification actually fail
+      </h3>
       <p className="text-sm text-paper-muted leading-relaxed mb-4">
-        A genuine proof of a real decision always verifies successfully — that's the point of a
-        ZK proof, not a shortcut. So you'll never see this check fail on a normal application.
-        This button takes your real proof, deliberately corrupts a copy of it (flips one byte),
-        and re-runs verification on both — so you can see the check actually reject something.
+        A genuine proof of a real decision always verifies successfully — that's
+        the point of a ZK proof, not a shortcut. So you'll never see this check
+        fail on a normal application. This button takes your real proof,
+        deliberately corrupts a copy of it (flips one byte), and re-runs
+        verification on both — so you can see the check actually reject
+        something.
       </p>
 
       {!result && (
@@ -165,11 +220,15 @@ function TamperDemo({ applicationId, enabled }) {
             animate={{ opacity: 1, x: 0 }}
             className="border border-approve/40 bg-approve-bg rounded-xl p-4"
           >
-            <div className="text-xs text-paper-muted font-mono mb-2">Your real proof</div>
+            <div className="text-xs text-paper-muted font-mono mb-2">
+              Your real proof
+            </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-approve" />
               <span className="text-approve font-medium text-sm">
-                {result.real_proof_verified ? "Verified" : "Failed (unexpected)"}
+                {result.real_proof_verified
+                  ? "Verified"
+                  : "Failed (unexpected)"}
               </span>
             </div>
           </motion.div>
@@ -178,11 +237,19 @@ function TamperDemo({ applicationId, enabled }) {
             animate={{ opacity: 1, x: 0 }}
             className="border border-reject/40 bg-reject-bg rounded-xl p-4"
           >
-            <div className="text-xs text-paper-muted font-mono mb-2">Same proof, 1 byte flipped</div>
+            <div className="text-xs text-paper-muted font-mono mb-2">
+              Same proof, 1 byte flipped
+            </div>
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${result.tampered_proof_verified ? "bg-approve" : "bg-reject"}`} />
-              <span className={`font-medium text-sm ${result.tampered_proof_verified ? "text-approve" : "text-reject"}`}>
-                {result.tampered_proof_verified ? "Verified (unexpected)" : "Rejected, as expected"}
+              <span
+                className={`w-2 h-2 rounded-full ${result.tampered_proof_verified ? "bg-approve" : "bg-reject"}`}
+              />
+              <span
+                className={`font-medium text-sm ${result.tampered_proof_verified ? "text-approve" : "text-reject"}`}
+              >
+                {result.tampered_proof_verified
+                  ? "Verified (unexpected)"
+                  : "Rejected, as expected"}
               </span>
             </div>
           </motion.div>
@@ -216,32 +283,20 @@ export default function Status() {
 
   const handleGenerateProof = async () => {
     setGenerating(true);
-    clearLog();
-    let cancelled = false;
-
-    // Narrate the real pipeline stages while the actual request is in flight —
-    // the timings are illustrative, but the call below is the real proof request.
-    (async () => {
-      for (const step of PROOF_STEPS) {
-        if (cancelled) return;
-        await new Promise((r) => setTimeout(r, step.delay));
-        if (cancelled) return;
-        pushLog(step.text, step.type);
-      }
-    })();
-
     try {
-      await api.generateProof(id);
-      cancelled = true;
-      pushLog("Proof accepted — status updated.", "success");
-      await load();
-      toast.success("Proof generated and verified.");
+      await api.generateProof(id); // ab turant "pending" return karega
+
+      // Poll every 3 seconds until status is no longer "pending"
+      const poll = setInterval(async () => {
+        const updated = await api.getApplication(id);
+        setApp(updated);
+        if (updated.proof_status !== "pending") {
+          clearInterval(poll);
+          setGenerating(false);
+        }
+      }, 3000);
     } catch (err) {
-      cancelled = true;
-      pushLog(`Pipeline error: ${err.message}`, "error");
       setError(err.message);
-      toast.error("Proof generation failed.");
-    } finally {
       setGenerating(false);
     }
   };
@@ -249,7 +304,9 @@ export default function Status() {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-16">
-        <div className="border border-reject/40 bg-reject-bg text-reject text-sm rounded-xl px-4 py-3">{error}</div>
+        <div className="border border-reject/40 bg-reject-bg text-reject text-sm rounded-xl px-4 py-3">
+          {error}
+        </div>
       </div>
     );
   }
@@ -263,7 +320,8 @@ export default function Status() {
   }
 
   const approved = app.decision === "Approved";
-  const canRunTamperDemo = app.proof_status === "proven" || app.proof_status === "verified";
+  const canRunTamperDemo =
+    app.proof_status === "proven" || app.proof_status === "verified";
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-16">
@@ -282,8 +340,14 @@ export default function Status() {
           <div className="flex items-center gap-5">
             <DecisionSeal approved={approved} statusKey={app.decision} />
             <div>
-              <div className="text-xs text-paper-muted font-mono mb-1">Decision</div>
-              <h1 className={`font-display text-4xl ${approved ? "text-approve" : "text-reject"}`}>{app.decision}</h1>
+              <div className="text-xs text-paper-muted font-mono mb-1">
+                Decision
+              </div>
+              <h1
+                className={`font-display text-4xl ${approved ? "text-approve" : "text-reject"}`}
+              >
+                {app.decision}
+              </h1>
             </div>
           </div>
           <ConfidenceGauge value={app.prediction_score} approved={approved} />
@@ -291,13 +355,25 @@ export default function Status() {
 
         <div className="border-t border-ink-border pt-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="text-xs text-paper-muted font-mono mb-2">Proof status</div>
+            <div className="text-xs text-paper-muted font-mono mb-2">
+              Proof status
+            </div>
             <ProofSeal status={app.proof_status} />
           </div>
-          {(app.proof_status === "not_started" || app.proof_status === "failed") && (
-            <Button onClick={handleGenerateProof} disabled={generating} variant="outline" size="sm">
+          {(app.proof_status === "not_started" ||
+            app.proof_status === "failed") && (
+            <Button
+              onClick={handleGenerateProof}
+              disabled={generating}
+              variant="outline"
+              size="sm"
+            >
               {generating && <Spinner className="w-3.5 h-3.5" />}
-              {generating ? "Proving… (may take a minute)" : app.proof_status === "failed" ? "Retry proof" : "Generate proof"}
+              {generating
+                ? "Proving… (may take a minute)"
+                : app.proof_status === "failed"
+                  ? "Retry proof"
+                  : "Generate proof"}
             </Button>
           )}
         </div>
@@ -312,11 +388,12 @@ export default function Status() {
           <>
             A real zero-knowledge proof was generated and verified locally.{" "}
             <strong className="text-paper">
-              This means: the decision above was genuinely computed by evaluating the bank's registered model — not
-              looked up, not overridden, not faked.
+              This means: the decision above was genuinely computed by
+              evaluating the bank's registered model — not looked up, not
+              overridden, not faked.
             </strong>{" "}
-            It does not mean the decision itself is "correct" in a moral sense, only that it truly came from that
-            model.
+            It does not mean the decision itself is "correct" in a moral sense,
+            only that it truly came from that model.
           </>
         )}
         {app.proof_status === "failed" &&
@@ -324,9 +401,19 @@ export default function Status() {
       </div>
 
       {(generating || proofLog.length > 0) && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
-          <div className="text-xs text-paper-muted font-mono mb-2 uppercase tracking-widest">Proof pipeline console</div>
-          <LiveLogConsole entries={proofLog} title={`proof://${id.slice(0, 8)}`} height="h-56" />
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6"
+        >
+          <div className="text-xs text-paper-muted font-mono mb-2 uppercase tracking-widest">
+            Proof pipeline console
+          </div>
+          <LiveLogConsole
+            entries={proofLog}
+            title={`proof://${id.slice(0, 8)}`}
+            height="h-56"
+          />
         </motion.div>
       )}
 

@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.db_models import Application, ProofRecord, User
 from app.schemas import LoanApplicationCreate, ApplicationResponse, ApplicationDetail, ProofGenerateResponse
 from app.inference import get_model
@@ -24,9 +24,6 @@ def _to_response(app_row: Application) -> dict:
 
 
 def _get_owned_application(application_id: str, current_user: User, db: Session) -> Application:
-    """Fetches an application and confirms it belongs to the requesting user.
-    Returns 404 (not 403) if it belongs to someone else, so we don't leak
-    which application IDs exist to users who don't own them."""
     row = db.query(Application).filter(Application.id == application_id).first()
     if not row or row.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -39,9 +36,6 @@ def submit_application(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Logged-in applicant submits a loan application. Runs model inference
-    immediately (off-chain, same as the real ZK circuit will later do) and
-    stores the result, linked to the submitting user."""
     model = get_model()
     raw_input = payload.model_dump()
     result = model.predict(raw_input)
@@ -77,7 +71,6 @@ def list_applications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Returns only the logged-in user's own applications."""
     rows = (
         db.query(Application)
         .filter(Application.user_id == current_user.id)
@@ -87,51 +80,56 @@ def list_applications(
     return [_to_response(r) for r in rows]
 
 
+def _run_proof_generation_job(application_id: str, raw_input: dict):
+    """Runs in a background thread (via FastAPI's BackgroundTasks), AFTER the
+    HTTP response has already been sent — needed because real proof
+    generation can take longer than Render's ~60s proxy timeout allows for a
+    single synchronous request. Needs its own DB session since the
+    request-scoped one is already closed by the time this runs."""
+    db = SessionLocal()
+    try:
+        row = db.query(Application).filter(Application.id == application_id).first()
+        if not row:
+            return
+        try:
+            result = generate_proof_for_application(application_id, raw_input)
+            row.proof_status = "proven" if result["verified"] else "failed"
+            row.proof_path = result["proof_path"]
+            db.add(ProofRecord(
+                application_id=application_id,
+                status="success" if result["verified"] else "failed",
+                detail=f"Proved and verified in {result['elapsed_seconds']}s",
+            ))
+        except ProofPipelineError as e:
+            row.proof_status = "failed"
+            db.add(ProofRecord(application_id=application_id, status="failed", detail=str(e)))
+        db.commit()
+    finally:
+        db.close()
+
+
 @router.post("/{application_id}/generate-proof", response_model=ProofGenerateResponse)
 def generate_proof(
     application_id: str,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Runs the real EZKL pipeline for this application: preprocesses its data
-    exactly like inference did, generates a witness, proves, and verifies —
-    all locally (not yet submitted on-chain — that's a separate future step).
-    Reuses the model's fixed proving/verifying keys generated once via
-    training/generate_proof.py."""
+    """Kicks off proof generation in the background and returns immediately
+    with 'pending'. Poll GET /applications/{id} to see when it finishes —
+    this avoids platform request-timeout limits (e.g. Render's ~60s proxy
+    timeout) that a long-running synchronous request would hit."""
     row = _get_owned_application(application_id, current_user, db)
 
     row.proof_status = "pending"
     db.commit()
 
-    try:
-        result = generate_proof_for_application(row.id, row.raw_input)
-    except ProofPipelineError as e:
-        row.proof_status = "failed"
-        db.add(ProofRecord(application_id=row.id, status="failed", detail=str(e)))
-        db.commit()
-        raise HTTPException(status_code=500, detail=str(e))
-
-    row.proof_status = "proven" if result["verified"] else "failed"
-    row.proof_path = result["proof_path"]
-    db.add(ProofRecord(
-        application_id=row.id,
-        status="success" if result["verified"] else "failed",
-        detail=f"Proved and verified locally in {result['elapsed_seconds']}s",
-    ))
-    db.commit()
-    db.refresh(row)
-
-    message = (
-        f"Proof generated and verified locally in {result['elapsed_seconds']}s. "
-        "Not yet submitted on-chain."
-        if result["verified"]
-        else "Proof was generated but local verification failed."
-    )
+    background_tasks.add_task(_run_proof_generation_job, row.id, row.raw_input)
 
     return ProofGenerateResponse(
         application_id=row.id,
-        proof_status=row.proof_status,
-        message=message,
+        proof_status="pending",
+        message="Proof generation started in the background — this can take a minute or two. Poll this application's status to see when it's done.",
     )
 
 
@@ -141,22 +139,14 @@ def tamper_demo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Educational endpoint, not a security feature. A legitimately-generated
-    ZK proof always verifies successfully — that's the point of the system,
-    not a bug — so without this, users never see a failing verification and
-    can't tell the check is doing real work. This takes the application's
-    already-generated real proof, corrupts a COPY of it (flips one byte),
-    and re-verifies both side by side so the difference is visible."""
     row = _get_owned_application(application_id, current_user, db)
     if row.proof_status not in ("proven", "verified"):
         raise HTTPException(
             status_code=400,
             detail="Generate a proof for this application first before running the tamper demo.",
         )
-
     try:
         result = run_tamper_demo(row.id)
     except ProofPipelineError as e:
         raise HTTPException(status_code=500, detail=str(e))
-
     return result

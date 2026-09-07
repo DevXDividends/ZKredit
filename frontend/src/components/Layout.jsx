@@ -73,6 +73,7 @@ export default function Layout({ children }) {
             <NavLink to="/apply">Apply</NavLink>
             <NavLink to="/bank">Bank Ledger</NavLink>
             <NavLink to="/network">Network</NavLink>
+            <NavLink to="/team">Team</NavLink>
 
             {!loading && isAuthenticated && (
               <div className="flex items-center gap-3 ml-3 pl-3 border-l border-ink-border">
@@ -127,6 +128,7 @@ export default function Layout({ children }) {
                 <NavLink to="/apply">Apply</NavLink>
                 <NavLink to="/bank">Bank Ledger</NavLink>
                 <NavLink to="/network">Network</NavLink>
+                <NavLink to="/team">Team</NavLink>
                 {!loading && isAuthenticated ? (
                   <button onClick={handleLogout} className="text-left px-3.5 py-2 text-sm text-paper-muted hover:text-paper">
                     Log out ({user?.full_name || user?.email})

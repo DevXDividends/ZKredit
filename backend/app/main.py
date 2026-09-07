@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+import os
 from app.database import Base, engine
 from app.routers import applications, bank, fairness, auth
 Base.metadata.create_all(bind=engine)
@@ -12,13 +12,13 @@ app = FastAPI(
 )
 
 # CORS: local dev origins + any extra origins from env + any *.vercel.app deployment
-import os
-_default_origins = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"]
-_extra_origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+
+_default_origins = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
+_allowed_origins = os.environ.get("ALLOWED_ORIGINS", _default_origins).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_default_origins + _extra_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

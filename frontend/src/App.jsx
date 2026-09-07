@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Apply from "./pages/Apply";
+import AboutDevelopers from "./pages/AboutDevelopers";
 import Status from "./pages/Status";
 import BankDashboard from "./pages/BankDashboard";
 import NotFound from "./pages/NotFound";
@@ -59,6 +60,7 @@ export default function App() {
                   </Suspense>
                 }
               />
+              <Route path="/team" element={<AboutDevelopers />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

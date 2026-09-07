@@ -2,8 +2,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# ca-certificates: needed for ezkl's HTTPS calls (SRS download)
-# libgomp1: onnxruntime needs this on slim Debian images
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libgomp1 \
@@ -14,10 +12,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
 
-# circuits/ is mounted as a volume at runtime (see docker-compose.yml) rather
-# than baked into the image — pk.key alone can be 150MB+ and is
-# environment/model-specific, not something that belongs in the image layer.
-RUN mkdir -p /app/circuits
+# Small, committed circuit artifacts (settings.json, model.compiled, vk.key,
+# proof.json) are baked into the image so this works on platforms without
+# volume-mount support (e.g. Render), not just Docker Compose. pk.key
+# (150MB+, gitignored) is deliberately NOT in the build context, so it
+# won't be here either — /generate-proof will fail gracefully with a clear
+# error on platforms where it hasn't been separately provisioned.
+COPY circuits/ /app/circuits/
 
 EXPOSE 8000
 

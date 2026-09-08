@@ -81,14 +81,6 @@ jobs:
   # relevant tests pass.
   # ---------------------------------------------------------------------
 
-  deploy-backend:
-    needs: [backend-tests, contracts-tests]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Render deploy
-        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-
   deploy-frontend:
     needs: [frontend-build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'

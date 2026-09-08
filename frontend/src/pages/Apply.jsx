@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../api";
@@ -106,12 +106,39 @@ export default function Apply() {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const toast = useToast();
+  const fileInputRef = useRef(null);
 
   const update = (key, value) => setForm((f) => ({ ...f, [key]: value }));
   const isLastStep = step === STEPS.length - 1;
+
+  const handleScanUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    setScanning(true);
+    setError(null);
+    try {
+      const result = await api.extractApplicationPdf(file);
+      const { mock, ...fields } = result;
+      const filled = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== null && v !== undefined));
+      setForm((f) => ({ ...f, ...filled }));
+      setStep(0);
+      toast.success(
+        mock
+          ? "Autofilled from document (mock mode — set GROQ_API_KEY for real OCR)."
+          : "Autofilled from document."
+      );
+    } catch (err) {
+      setError(err.message || "Could not read that document. You can still fill the form manually.");
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const goNext = () => {
     setDirection(1);
@@ -166,6 +193,17 @@ export default function Apply() {
         Your details are sent to the model for a decision. Only a cryptographic commitment to
         this data — never the data itself — is ever recorded publicly.
       </p>
+
+      <div className="border border-ink-border rounded-2xl p-5 bg-ink-surface mb-10 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-sm text-paper mb-0.5">Have a filled application on paper?</p>
+          <p className="text-xs text-paper-dim">Scan or upload a PDF to autofill the fields below.</p>
+        </div>
+        <input ref={fileInputRef} type="file" accept="application/pdf" onChange={handleScanUpload} className="hidden" />
+        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={scanning}>
+          {scanning && <Spinner />} {scanning ? "Reading document…" : "Scan document"}
+        </Button>
+      </div>
 
       {/* Progress */}
       <div className="flex items-center gap-2 mb-10">

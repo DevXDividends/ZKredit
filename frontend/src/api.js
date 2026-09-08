@@ -6,7 +6,8 @@ export function setAuthToken(token) {
 }
 
 async function request(path, options = {}) {
-  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  const isFormData = options.body instanceof FormData;
+  const headers = { ...(isFormData ? {} : { "Content-Type": "application/json" }), ...(options.headers || {}) };
   if (authToken) {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
@@ -32,6 +33,14 @@ export const api = {
   listApplications: () => request("/applications"),
   generateProof: (id) => request(`/applications/${id}/generate-proof`, { method: "POST" }),
   runTamperDemo: (id) => request(`/applications/${id}/tamper-demo`, { method: "POST" }),
+
+  // Loan-application OCR scanner
+  extractApplicationPdf: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request("/ocr/extract-application", { method: "POST", body: formData });
+  },
+  generateTestPdf: () => request("/ocr/generate-test-pdf"),
 
   // Bank dashboard (unauthenticated for now — see README)
   bankSummary: () => request("/bank/summary"),

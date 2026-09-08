@@ -71,6 +71,7 @@ export default function Layout({ children }) {
 
           <nav className="hidden md:flex items-center gap-1">
             <NavLink to="/apply">Apply</NavLink>
+            <NavLink to="/ocr-scanner">Scanner</NavLink>
             <NavLink to="/bank">Bank Ledger</NavLink>
             <NavLink to="/network">Network</NavLink>
             <NavLink to="/team">Team</NavLink>
@@ -126,6 +127,7 @@ export default function Layout({ children }) {
             >
               <div className="px-6 py-4 flex flex-col gap-1">
                 <NavLink to="/apply">Apply</NavLink>
+                <NavLink to="/ocr-scanner">Scanner</NavLink>
                 <NavLink to="/bank">Bank Ledger</NavLink>
                 <NavLink to="/network">Network</NavLink>
                 <NavLink to="/team">Team</NavLink>

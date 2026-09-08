@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Apply from "./pages/Apply";
+import OcrTest from "./pages/OcrTest";
 import AboutDevelopers from "./pages/AboutDevelopers";
 import Status from "./pages/Status";
 import BankDashboard from "./pages/BankDashboard";
@@ -40,6 +41,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Apply />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ocr-scanner"
+                element={
+                  <ProtectedRoute>
+                    <OcrTest />
                   </ProtectedRoute>
                 }
               />

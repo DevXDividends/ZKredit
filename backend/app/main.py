@@ -1,8 +1,10 @@
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from app.database import Base, engine
-from app.routers import applications, bank, fairness, auth
+from app.routers import applications, bank, fairness, auth, ocr
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -28,6 +30,7 @@ app.include_router(auth.router)
 app.include_router(applications.router)
 app.include_router(bank.router)
 app.include_router(fairness.router)
+app.include_router(ocr.router)
 @app.on_event("startup")
 async def ensure_srs_cached():
     """Pre-warms the KZG SRS cache so the first /generate-proof call isn't

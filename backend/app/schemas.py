@@ -94,3 +94,25 @@ class ProofGenerateResponse(BaseModel):
     application_id: str
     proof_status: str
     message: str
+
+
+class OcrApplicationExtraction(BaseModel):
+    person_age: Optional[float] = None
+    person_gender: Optional[str] = None
+    person_education: Optional[str] = None
+    person_income: Optional[float] = None
+    person_emp_exp: Optional[int] = None
+    person_home_ownership: Optional[str] = None
+    loan_amnt: Optional[float] = None
+    loan_intent: Optional[str] = None
+    loan_int_rate: Optional[float] = None
+    loan_percent_income: Optional[float] = None
+    cb_person_cred_hist_length: Optional[float] = None
+    credit_score: Optional[int] = None
+    previous_loan_defaults_on_file: Optional[str] = None
+    mock: bool
+
+
+class OcrTestPdfResponse(BaseModel):
+    pdf_base64: str
+    ground_truth: LoanApplicationCreate

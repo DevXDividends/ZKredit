@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 pydantic
+python-dotenv
 onnxruntime
 numpy
 python-multipart
@@ -21,3 +22,8 @@ psycopg2-binary
 # this into a separate "prover" service later if needed.
 ezkl
 requests
+
+# Bank-document/loan-application OCR scanner
+groq
+reportlab
+pymupdf

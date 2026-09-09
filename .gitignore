@@ -56,3 +56,7 @@ circuits/*/kzg*.srs
 *.swp
 backend/.env
 .env
+
+env-vars.yaml
+
+github-actions-key.json

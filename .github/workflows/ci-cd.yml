@@ -76,15 +76,44 @@ jobs:
       - name: Run Foundry tests
         run: forge test -vv
 
-  # ---------------------------------------------------------------------
-  # CD: deploy hooks. Only fire on a push to main, and only after the
-  # relevant tests pass.
-  # ---------------------------------------------------------------------
-
-  deploy-frontend:
-    needs: [frontend-build]
+  deploy-backend:
+    needs: [backend-tests, contracts-tests]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Vercel deploy
-        run: curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Build image
+        run: docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/zkredit-repo/zkredit-backend -f backend/Dockerfile .
+
+      - name: Push image
+        run: docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/zkredit-repo/zkredit-backend
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy zkredit-backend \
+            --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/zkredit-repo/zkredit-backend \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --memory 1Gi \
+            --set-env-vars "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }},GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }},DATABASE_URL=${{ secrets.DATABASE_URL }},ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }},CIRCUIT_DIR=/app/circuits/loan_model,PK_KEY_URL=${{ secrets.PK_KEY_URL }},GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"
+
+  # ---------------------------------------------------------------------
+  # CD: deploy hooks. Only fire on a push to main, and only after the
+  # relevant tests pass.
+  # ---------------------------------------------------------------------`
+
+

@@ -20,7 +20,7 @@ const TEAM = [
       "Proof beats promise. If a claim can't be verified, it's just marketing — that's the whole reason ZKredit exists.",
   },
   {
-    name: "Aditya D. Dengale",
+    name: "Aditya Dengale",
     linkedin: "https://www.linkedin.com/in/adityadengale/",
     github: "https://github.com/DevXDividends",
     photo:

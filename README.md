@@ -8,6 +8,7 @@
 model's weights or the applicant's private data.*
 
 [![CI/CD](https://github.com/DevXDividends/ZKredit/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/DevXDividends/ZKredit/actions/workflows/ci-cd.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
@@ -46,6 +47,7 @@ model's weights or the applicant's private data.*
 - [Deployment](#-deployment-cloud)
 - [Troubleshooting](#-troubleshooting)
 - [Design notes](#-notes-on-scope-and-design-decisions)
+- [License](#-license)
 
 ---
 
@@ -104,6 +106,7 @@ ZKredit makes that mathematically verifiable.
 | CI/CD (GitHub Actions) | ✅ Done — tests gate every deploy |
 | Cloud deployment | ✅ Done — Cloud Run + Vercel + Neon |
 | Docker (local, 3 containers) | ✅ Done |
+| Uptime monitoring | ✅ Done — UptimeRobot pings `/health` every 5 min |
 | On-chain proof submission from the app itself | ⏳ Proven manually, not yet automatic |
 | Testnet deployment (e.g. Sepolia) | ⏳ Not started |
 | Bank-side authentication / roles | ⏳ Not started — `/bank/*` is currently open |
@@ -145,6 +148,7 @@ Validated independently (not yet wired into the live app flow)
 
 ```
 zkredit/
+├── LICENSE                        # MIT
 ├── .github/workflows/ci-cd.yml   # GitHub Actions: tests + auto-deploy pipeline
 ├── data/raw/loan_data.csv        # Kaggle loan-approval dataset (45k rows)
 ├── training/                     # Model training — own venv (torch, sklearn, ezkl)
@@ -397,6 +401,7 @@ full output, same as running locally.
 | Frontend | Vercel | Free tier — auto-deploys via git |
 | Database | Neon (Postgres) | Free tier, no expiry |
 | `pk.key` (150MB+) | GitHub Releases | Downloaded at container startup |
+| Uptime monitoring | UptimeRobot | Pings `/health` every 5 min — keeps Cloud Run warm and alerts on real downtime |
 
 <details>
 <summary><b>Why Cloud Run, not Render (click to expand)</b></summary>
@@ -527,6 +532,23 @@ CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
 
 </details>
 
+<details>
+<summary><b>Uptime monitoring (UptimeRobot) setup (click to expand)</b></summary>
+
+Google Cloud Run scales to zero when idle, meaning the first request after a period of
+inactivity is slower (cold start). A free uptime monitor pinging `/health` every 5 minutes
+keeps an instance warm most of the time, and doubles as real downtime alerting:
+
+1. [uptimerobot.com](https://uptimerobot.com) → free sign up.
+2. **Add New Monitor** → Monitor Type: `HTTP(s)` → URL:
+   `https://<your-cloud-run-url>/health` (specifically `/health`, not the root — it's
+   lightweight and doesn't touch the database).
+3. Monitoring Interval: `5 minutes` (free plan minimum).
+4. Save. This comfortably stays within Cloud Run's free tier (a 5-minute ping cadence is a
+   small fraction of a percent of the monthly request and vCPU-second quotas).
+
+</details>
+
 ---
 
 ## 🩹 Troubleshooting
@@ -598,3 +620,14 @@ avoids ever making a real proving call and verifies the missing-`pk.key` path vi
   reimplementing it in GitHub Actions; the backend needs GitHub Actions because Cloud Run
   deployment is a multi-step build→push→deploy sequence that benefits from explicit
   test-gating.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for
+the full text.
+
+In short: you're free to use, copy, modify, and distribute this code (including for
+commercial purposes), as long as the original copyright notice and license text are included.
+The code is provided "as is," with no warranty.

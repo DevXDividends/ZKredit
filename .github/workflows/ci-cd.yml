@@ -76,6 +76,14 @@ jobs:
       - name: Run Foundry tests
         run: forge test -vv
 
+  # ---------------------------------------------------------------------
+  # CD: backend deploys to Cloud Run only after tests pass on a push to
+  # main. Env vars are written to a YAML file rather than passed inline
+  # via --set-env-vars, because that flag's comma-separated dict syntax
+  # breaks on any value that itself contains a comma or "=" (e.g.
+  # ALLOWED_ORIGINS with multiple origins, or DATABASE_URL's query string).
+  # ---------------------------------------------------------------------
+
   deploy-backend:
     needs: [backend-tests, contracts-tests]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -102,6 +110,18 @@ jobs:
       - name: Push image
         run: docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/zkredit-repo/zkredit-backend
 
+      - name: Write env vars file
+        run: |
+          cat > /tmp/env-vars.yaml << EOF
+          JWT_SECRET_KEY: "${{ secrets.JWT_SECRET_KEY }}"
+          GOOGLE_CLIENT_ID: "${{ secrets.GOOGLE_CLIENT_ID }}"
+          DATABASE_URL: "${{ secrets.DATABASE_URL }}"
+          ALLOWED_ORIGINS: "${{ secrets.ALLOWED_ORIGINS }}"
+          CIRCUIT_DIR: "/app/circuits/loan_model"
+          PK_KEY_URL: "${{ secrets.PK_KEY_URL }}"
+          GROQ_API_KEY: "${{ secrets.GROQ_API_KEY }}"
+          EOF
+
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy zkredit-backend \
@@ -109,11 +129,4 @@ jobs:
             --region us-central1 \
             --allow-unauthenticated \
             --memory 1Gi \
-            --set-env-vars "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }},GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }},DATABASE_URL=${{ secrets.DATABASE_URL }},ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }},CIRCUIT_DIR=/app/circuits/loan_model,PK_KEY_URL=${{ secrets.PK_KEY_URL }},GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"
-
-  # ---------------------------------------------------------------------
-  # CD: deploy hooks. Only fire on a push to main, and only after the
-  # relevant tests pass.
-  # ---------------------------------------------------------------------`
-
-
+            --env-vars-file=/tmp/env-vars.yaml

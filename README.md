@@ -17,7 +17,7 @@ model's weights or the applicant's private data.*
 ![Cloud Run](https://img.shields.io/badge/Backend-Google%20Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?logo=vercel&logoColor=white)
 
-**[🚀 Live App](https://z-kredit-one.vercel.app) &nbsp;·&nbsp; [📘 API Docs](https://zkredit-backend-723874192075.us-central1.run.app/docs) &nbsp;·&nbsp; [📂 Repo](https://github.com/DevXDividends/ZKredit)**
+**[🚀 Live App](https://www.zkredit.tech/) &nbsp;·&nbsp; [📘 API Docs](https://zkredit-backend-723874192075.us-central1.run.app/docs) &nbsp;·&nbsp; [📂 Repo](https://github.com/DevXDividends/ZKredit)**
 
 </div>
 

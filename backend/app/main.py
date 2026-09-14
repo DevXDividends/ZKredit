@@ -15,6 +15,7 @@ app = FastAPI(
 
 # CORS: local dev origins + any extra origins from env + any *.vercel.app deployment
 
+
 _default_origins = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
 _allowed_origins = os.environ.get("ALLOWED_ORIGINS", _default_origins).split(",")
 

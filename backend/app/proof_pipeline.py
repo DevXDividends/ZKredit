@@ -10,6 +10,7 @@ the repo root) and in Docker (mounted volume, typically /app/circuits/loan_model
 """
 
 import json
+import math
 import os
 import subprocess
 import sys
@@ -29,20 +30,52 @@ SETTINGS_PATH = os.path.join(CIRCUIT_DIR, "settings.json")
 PK_PATH = os.path.join(CIRCUIT_DIR, "pk.key")
 VK_PATH = os.path.join(CIRCUIT_DIR, "vk.key")
 
-PROVE_TIMEOUT_SECONDS = 240  # stay under Cloud Run's 300s request limit
+# A healthy proof takes ~20s. If a prove call hangs, kill it and retry once; two attempts
+# of 100s stay under Cloud Run's 300s request limit. Diagnostics from the stuck child
+# (last stage + CPU/RSS samples) are included in the error so the cause is visible.
+PROVE_ATTEMPTS = 2
+PROVE_ATTEMPT_TIMEOUT_SECONDS = 100
+_SAMPLE_EVERY_SECONDS = 10
 
 # witness -> prove -> verify run in a plain child process (like training/generate_proof.py,
 # which is known to work). Running ezkl's Rust runtime inside the uvicorn worker
 # thread hung / panicked the whole server; a child process can't do that and can be killed.
 _PROVE_SNIPPET = """
-import json, sys, ezkl
+import json, sys, time, ezkl
+def log(m): print(m, file=sys.stderr, flush=True)
 inp, compiled, pk, vk, settings, witness, proof = sys.argv[1:8]
-if not ezkl.gen_witness(inp, compiled, witness):
+lo_b, hi_b = int(sys.argv[8]), int(sys.argv[9])
+t = time.time(); log("witness:start")
+w = ezkl.gen_witness(inp, compiled, witness)
+if not w:
     print(json.dumps({"error": "witness generation failed"})); sys.exit(2)
+w = w if isinstance(w, dict) else {}
+zmin, zmax = w.get("min_lookup_inputs", 0), w.get("max_lookup_inputs", 0)
+if zmin < lo_b or zmax > hi_b:
+    print(json.dumps({"out_of_range": True, "zmin": zmin, "zmax": zmax})); sys.exit(4)
+log("witness:done %.1fs" % (time.time() - t)); t = time.time(); log("prove:start")
 if not ezkl.prove(witness, compiled, pk, proof):
     print(json.dumps({"error": "proof generation failed"})); sys.exit(3)
-print(json.dumps({"verified": bool(ezkl.verify(proof, settings, vk))}))
+log("prove:done %.1fs" % (time.time() - t)); t = time.time(); log("verify:start")
+ok = bool(ezkl.verify(proof, settings, vk))
+log("verify:done %.1fs" % (time.time() - t))
+print(json.dumps({"verified": ok}))
 """
+
+
+def _lookup_bounds():
+    """(lo, hi, scale) of the sigmoid-input values this circuit can prove.
+    IMPORTANT: ezkl's prove() HANGS (no error) if a witness value falls outside the sigmoid
+    lookup table. The table starts at settings.run_args.lookup_range[0] and holds ~2^logrows
+    entries (verified empirically: for this circuit [-26112, +6648] proves, anything beyond hangs).
+    Wider coverage needs the circuit re-calibrated with a wider lookup_range / larger logrows."""
+    try:
+        with open(SETTINGS_PATH) as f:
+            ra = json.load(f)["run_args"]
+        lo = int(ra["lookup_range"][0])
+        return lo, lo + 2 ** int(ra["logrows"]) - 16, 2 ** int(ra["input_scale"])
+    except Exception:
+        return -10 ** 9, 10 ** 9, 4096  # unknown layout -> don't block
 
 
 def _child_env() -> dict:
@@ -81,6 +114,42 @@ async def ensure_srs_downloaded():
     return await ezkl.get_srs(SETTINGS_PATH)
 
 
+def _sample_child(pid: int, t0: float) -> str:
+    """One line of /proc stats for the child: cpu seconds used, RSS, run state.
+    Linux only (returns "" elsewhere). Flat cpu + state S = waiting; rising cpu = computing."""
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            fields = f.read().rsplit(")", 1)[1].split()
+        state, cpu = fields[0], (int(fields[11]) + int(fields[12])) / os.sysconf("SC_CLK_TCK")
+        rss_mb = -1
+        with open(f"/proc/{pid}/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    rss_mb = int(line.split()[1]) // 1024
+        return f"t={time.time() - t0:.0f}s cpu={cpu:.0f}s rss={rss_mb}MB state={state}"
+    except Exception:
+        return ""
+
+
+def _run_prove_once(args: list, timeout: float):
+    """Runs the child; returns (returncode, stdout, stderr, samples, timed_out)."""
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=_child_env())
+    t0 = time.time()
+    samples = []
+    while True:
+        try:
+            out, err = proc.communicate(timeout=_SAMPLE_EVERY_SECONDS)
+            return proc.returncode, out, err, samples, False
+        except subprocess.TimeoutExpired:
+            sample = _sample_child(proc.pid, t0)
+            if sample:
+                samples.append(sample)
+            if time.time() - t0 >= timeout:
+                proc.kill()
+                out, err = proc.communicate()
+                return proc.returncode, out, err, samples, True
+
+
 def generate_proof_for_application(application_id: str, raw_input: dict) -> dict:
     """Preprocess -> witness -> prove -> verify, for one application's real data.
     Returns a dict with verification result, proof file path, and timing."""
@@ -98,33 +167,47 @@ def generate_proof_for_application(application_id: str, raw_input: dict) -> dict
     with open(input_path, "w") as f:
         json.dump({"input_data": x.tolist()}, f)
 
+    lo_b, hi_b, scale = _lookup_bounds()
+    args = [sys.executable, "-c", _PROVE_SNIPPET, input_path, MODEL_COMPILED, PK_PATH,
+            VK_PATH, SETTINGS_PATH, witness_path, proof_path, str(lo_b), str(hi_b)]
     t0 = time.time()
+    note = ""
 
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-c", _PROVE_SNIPPET, input_path, MODEL_COMPILED, PK_PATH,
-             VK_PATH, SETTINGS_PATH, witness_path, proof_path],
-            capture_output=True, text=True, timeout=PROVE_TIMEOUT_SECONDS, env=_child_env(),
-        )
-    except subprocess.TimeoutExpired:
-        raise ProofPipelineError(f"Proof generation timed out after {PROVE_TIMEOUT_SECONDS}s")
+    for attempt in range(1, PROVE_ATTEMPTS + 1):
+        returncode, out, err, samples, timed_out = _run_prove_once(args, PROVE_ATTEMPT_TIMEOUT_SECONDS)
 
-    lines = [ln for ln in proc.stdout.strip().splitlines() if ln.strip()]
-    try:
-        result = json.loads(lines[-1]) if lines else {}
-    except json.JSONDecodeError:
-        result = {}
-    if proc.returncode != 0 or "verified" not in result:
-        reason = result.get("error") or (proc.stderr or proc.stdout).strip()[-400:] or f"exit code {proc.returncode}"
-        raise ProofPipelineError(f"Proof generation failed: {reason}")
+        if timed_out:
+            stages = [ln for ln in (err or "").strip().splitlines() if ln.strip()][-2:]
+            picked = [samples[i] for i in sorted({0, len(samples) // 2, len(samples) - 1})] if samples else []
+            note = f"Last child log: {' | '.join(stages) or 'none'}. Child samples: {' ; '.join(picked) or 'n/a'}."
+            continue  # hung -> killed -> retry
 
-    elapsed = time.time() - t0
+        lines = [ln for ln in (out or "").strip().splitlines() if ln.strip()]
+        try:
+            result = json.loads(lines[-1]) if lines else {}
+        except json.JSONDecodeError:
+            result = {}
+        if result.get("out_of_range"):
+            z = result["zmin"] if result["zmin"] < lo_b else result["zmax"]
+            sig = lambda v: 1 / (1 + math.exp(-v / scale))
+            raise ProofPipelineError(
+                f"Cannot prove this application: its model score ({sig(z):.2%}) is outside the range the "
+                f"ZK circuit was calibrated for ({sig(lo_b):.2%} to {sig(hi_b):.1%}). The decision itself is "
+                f"unaffected; only proof generation is unsupported for this input."
+            )
+        if returncode != 0 or "verified" not in result:
+            reason = result.get("error") or (err or out or "").strip()[-400:] or f"exit code {returncode}"
+            raise ProofPipelineError(f"Proof generation failed: {reason}")
 
-    return {
-        "verified": bool(result["verified"]),
-        "proof_path": proof_path,
-        "elapsed_seconds": round(elapsed, 2),
-    }
+        return {
+            "verified": bool(result["verified"]),
+            "proof_path": proof_path,
+            "elapsed_seconds": round(time.time() - t0, 2),
+        }
+
+    raise ProofPipelineError(
+        f"Proof generation timed out ({PROVE_ATTEMPTS} attempts x {PROVE_ATTEMPT_TIMEOUT_SECONDS}s). {note}"
+    )
 
 
 def run_tamper_demo(application_id: str) -> dict:

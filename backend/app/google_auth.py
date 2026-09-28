@@ -25,8 +25,11 @@ def verify_google_token(token: str) -> dict:
             detail="Google sign-in is not configured on the server (GOOGLE_CLIENT_ID missing).",
         )
     try:
-        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
-    except ValueError:
+        idinfo = id_token.verify_oauth2_token(
+    token, google_requests.Request(), GOOGLE_CLIENT_ID, clock_skew_in_seconds=10
+)
+    except ValueError as e:
+        print(f"[google_auth] verification failed: {e}", flush=True)
         raise HTTPException(status_code=401, detail="Invalid Google token.")
 
     if idinfo.get("aud") != GOOGLE_CLIENT_ID:

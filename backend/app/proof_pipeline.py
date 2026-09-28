@@ -11,6 +11,8 @@ the repo root) and in Docker (mounted volume, typically /app/circuits/loan_model
 
 import json
 import os
+import subprocess
+import sys
 import time
 
 import ezkl
@@ -26,6 +28,29 @@ MODEL_COMPILED = os.path.join(CIRCUIT_DIR, "model.compiled")
 SETTINGS_PATH = os.path.join(CIRCUIT_DIR, "settings.json")
 PK_PATH = os.path.join(CIRCUIT_DIR, "pk.key")
 VK_PATH = os.path.join(CIRCUIT_DIR, "vk.key")
+
+PROVE_TIMEOUT_SECONDS = 240  # stay under Cloud Run's 300s request limit
+
+# witness -> prove -> verify run in a plain child process (like training/generate_proof.py,
+# which is known to work). Running ezkl's Rust runtime inside the uvicorn worker
+# thread hung / panicked the whole server; a child process can't do that and can be killed.
+_PROVE_SNIPPET = """
+import json, sys, ezkl
+inp, compiled, pk, vk, settings, witness, proof = sys.argv[1:8]
+if not ezkl.gen_witness(inp, compiled, witness):
+    print(json.dumps({"error": "witness generation failed"})); sys.exit(2)
+if not ezkl.prove(witness, compiled, pk, proof):
+    print(json.dumps({"error": "proof generation failed"})); sys.exit(3)
+print(json.dumps({"verified": bool(ezkl.verify(proof, settings, vk))}))
+"""
+
+
+def _child_env() -> dict:
+    env = dict(os.environ)
+    # ezkl reads $HOME to find its SRS cache; Windows doesn't set it -> "NotPresent" panic.
+    env.setdefault("HOME", os.path.expanduser("~"))
+    return env
+
 
 PROOFS_DIR = os.path.join(BASE_DIR, "generated_proofs")
 os.makedirs(PROOFS_DIR, exist_ok=True)
@@ -75,19 +100,28 @@ def generate_proof_for_application(application_id: str, raw_input: dict) -> dict
 
     t0 = time.time()
 
-    witness_result = ezkl.gen_witness(input_path, MODEL_COMPILED, witness_path)
-    if not witness_result:
-        raise ProofPipelineError("Witness generation failed")
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", _PROVE_SNIPPET, input_path, MODEL_COMPILED, PK_PATH,
+             VK_PATH, SETTINGS_PATH, witness_path, proof_path],
+            capture_output=True, text=True, timeout=PROVE_TIMEOUT_SECONDS, env=_child_env(),
+        )
+    except subprocess.TimeoutExpired:
+        raise ProofPipelineError(f"Proof generation timed out after {PROVE_TIMEOUT_SECONDS}s")
 
-    proof_result = ezkl.prove(witness_path, MODEL_COMPILED, PK_PATH, proof_path)
-    if not proof_result:
-        raise ProofPipelineError("Proof generation failed")
+    lines = [ln for ln in proc.stdout.strip().splitlines() if ln.strip()]
+    try:
+        result = json.loads(lines[-1]) if lines else {}
+    except json.JSONDecodeError:
+        result = {}
+    if proc.returncode != 0 or "verified" not in result:
+        reason = result.get("error") or (proc.stderr or proc.stdout).strip()[-400:] or f"exit code {proc.returncode}"
+        raise ProofPipelineError(f"Proof generation failed: {reason}")
 
-    verified = ezkl.verify(proof_path, SETTINGS_PATH, VK_PATH)
     elapsed = time.time() - t0
 
     return {
-        "verified": bool(verified),
+        "verified": bool(result["verified"]),
         "proof_path": proof_path,
         "elapsed_seconds": round(elapsed, 2),
     }

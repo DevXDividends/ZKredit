@@ -33,7 +33,7 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 # Groq deprecated its earlier vision models (llama-4-scout, then llama-4-maverick
 # in Feb 2026) in favor of text-only gpt-oss models — qwen3.6-27b is the current
 # vision-capable one. Check https://console.groq.com/docs/vision if this changes.
-GROQ_MODEL = os.environ.get("GROQ_VISION_MODEL", "qwen/qwen3.6-27b")
+GROQ_MODEL = os.environ.get("GROQ_VISION_MODEL", "qwen/qwen3.8-27b")
 MOCK_MODE = not bool(GROQ_API_KEY)
 
 FIELDS = [

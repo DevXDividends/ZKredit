@@ -3,6 +3,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
+os.environ.setdefault("HOME", os.path.expanduser("~"))
 from app.database import Base, engine
 from app.routers import applications, bank, fairness, auth, ocr
 Base.metadata.create_all(bind=engine)

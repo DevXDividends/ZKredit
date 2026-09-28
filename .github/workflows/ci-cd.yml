@@ -129,4 +129,5 @@ jobs:
             --region us-central1 \
             --allow-unauthenticated \
             --memory 1Gi \
-            --env-vars-file=/tmp/env-vars.yaml
+            --env-vars-file=/tmp/env-vars.yaml \
+            --liveness-probe="httpGet.path=/health,httpGet.port=8080,initialDelaySeconds=20,periodSeconds=30,timeoutSeconds=10,failureThreshold=4"

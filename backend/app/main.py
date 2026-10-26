@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 os.environ.setdefault("HOME", os.path.expanduser("~"))
 from app.database import Base, engine
-from app.routers import applications, bank, fairness, auth, ocr
+from app.routers import applications, bank, fairness, auth, ocr, onchain
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -33,6 +33,7 @@ app.include_router(applications.router)
 app.include_router(bank.router)
 app.include_router(fairness.router)
 app.include_router(ocr.router)
+app.include_router(onchain.router)
 @app.on_event("startup")
 async def ensure_srs_cached():
     """Pre-warms the KZG SRS cache so the first /generate-proof call isn't

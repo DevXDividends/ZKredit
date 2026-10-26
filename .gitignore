@@ -60,3 +60,4 @@ backend/.env
 env-vars.yaml
 
 github-actions-key.json
+contracts/broadcast/

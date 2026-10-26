@@ -8,6 +8,7 @@ import Button from "../components/ui/Button";
 import Spinner from "../components/ui/Spinner";
 import LiveLogConsole from "../components/LiveLogConsole";
 import useLiveLog from "../hooks/useLiveLog";
+import OnchainPanel from "../components/OnchainPanel";
 
 const PROOF_STEPS = [
   { text: "Loading application inputs into circuit witness generator…", type: "info", delay: 250 },
@@ -329,7 +330,7 @@ export default function Status() {
           <LiveLogConsole entries={proofLog} title={`proof://${id.slice(0, 8)}`} height="h-56" />
         </motion.div>
       )}
-
+      <OnchainPanel applicationId={id} app={app} onDone={load} />
       <TamperDemo applicationId={id} enabled={canRunTamperDemo} />
     </div>
   );

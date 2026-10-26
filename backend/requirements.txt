@@ -27,3 +27,4 @@ requests
 groq
 reportlab
 pymupdf
+web3>=7,<9

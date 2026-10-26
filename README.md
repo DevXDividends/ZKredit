@@ -4,8 +4,8 @@
 
 ### Zero-Knowledge Proof Based Fair Lending Verification System
 
-*A bank proves a loan decision came from its real, unmodified model — without revealing the
-model's weights or the applicant's private data.*
+*A bank proves a loan decision came from its real, unmodified model, and anyone can verify
+that proof, including on a blockchain.*
 
 [![CI/CD](https://github.com/DevXDividends/ZKredit/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/DevXDividends/ZKredit/actions/workflows/ci-cd.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
@@ -17,7 +17,7 @@ model's weights or the applicant's private data.*
 ![Cloud Run](https://img.shields.io/badge/Backend-Google%20Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?logo=vercel&logoColor=white)
 
-**[🚀 Live App](https://www.zkredit.tech/) &nbsp;·&nbsp; [📘 API Docs](https://zkredit-backend-723874192075.us-central1.run.app/docs) &nbsp;·&nbsp; [📂 Repo](https://github.com/DevXDividends/ZKredit)**
+**[🚀 Live App](https://z-kredit-one.vercel.app) &nbsp;·&nbsp; [📘 API Docs](https://zkredit-backend-723874192075.us-central1.run.app/docs) &nbsp;·&nbsp; [📂 Repo](https://github.com/DevXDividends/ZKredit)**
 
 </div>
 
@@ -42,6 +42,7 @@ model's weights or the applicant's private data.*
   - [5. ZK proving key](#5-generate-pkkey-so-real-proof-generation-works-locally)
   - [6. Frontend](#6-set-up-the-frontend)
   - [7. Authentication](#7-set-up-authentication-jwt--google-oauth)
+- [On-chain verification](#️-on-chain-verification-local-anvil)
 - [Testing](#-testing)
 - [CI/CD](#-cicd)
 - [Deployment](#-deployment-cloud)
@@ -60,7 +61,7 @@ model's weights or the applicant's private data.*
    confidence score — instant, real machine-learning inference.
 3. **A zero-knowledge proof can then be generated** for that decision. It mathematically
    demonstrates: *"this exact decision was produced by evaluating the bank's real, registered
-   model on some input"* — without revealing the input or the model's weights.
+   model on some input"* — the model is fixed and registered, so the decision cannot be quietly altered.
 4. **Anyone can verify the proof** — locally, or on-chain — without trusting the bank's word.
    Tamper with the proof even slightly and verification fails, demonstrated directly in the
    app via a "tamper demo."
@@ -102,13 +103,13 @@ ZKredit makes that mathematically verifiable.
 | Tamper demo | ✅ Done |
 | OCR loan-application scanner | ✅ Done — with graceful mock-mode fallback |
 | Authentication (JWT + Google OAuth) | ✅ Done |
-| Automated backend test suite (33 tests) | ✅ Done |
+| Automated backend test suite (39 tests) | ✅ Done |
 | CI/CD (GitHub Actions) | ✅ Done — tests gate every deploy |
 | Cloud deployment | ✅ Done — Cloud Run + Vercel + Neon |
 | Docker (local, 3 containers) | ✅ Done |
 | Uptime monitoring | ✅ Done — UptimeRobot pings `/health` every 5 min |
-| On-chain proof submission from the app itself | ⏳ Proven manually, not yet automatic |
-| Testnet deployment (e.g. Sepolia) | ⏳ Not started |
+| On-chain proof submission from the app itself | ✅ Done — "Verify on-chain" button, tested on local Anvil |
+| Testnet deployment (e.g. Sepolia) | ⏳ Attempted; contract creation failed on Sepolia, local Anvil only |
 | Bank-side authentication / roles | ⏳ Not started — `/bank/*` is currently open |
 | Frontend automated tests | ⏳ Not started |
 
@@ -135,8 +136,8 @@ Offline / one-time setup
                   → EZKL circuit compilation → proving/verifying keys
                   → Solidity verifier generation
 
-Validated independently (not yet wired into the live app flow)
-   Proof + registry contract → local Ethereum testnet (Anvil) → on-chain verification
+On-chain verification (optional, ONCHAIN_ENABLED=true; local Anvil)
+   Backend → web3.py → LoanApplicationRegistry → Halo2Verifier → recorded on-chain
 ```
 
 ---
@@ -331,9 +332,73 @@ remains fully available.
 
 ---
 
+## ⛓️ On-chain verification (local Anvil)
+
+After a proof is generated, the app can send it to a smart contract. The contract runs the
+EZKL-generated Halo2 verifier itself; only if the proof is valid is the decision recorded
+permanently on the chain (decision, timestamp and a hash of the applicant's input, not the
+input itself).
+
+```
+Generate proof → "Verify on-chain" → backend (web3.py) signs a transaction
+  → LoanApplicationRegistry.submitProof() → Halo2Verifier.verifyProof()
+  → valid: application recorded, tx hash stored, status "Verified On-Chain"
+  → invalid: transaction reverts
+```
+
+The feature is **off by default**; the deployed app is unaffected unless `ONCHAIN_ENABLED=true`.
+
+### Run it locally
+
+```bash
+# Terminal 1 — local chain (leave open)
+anvil --host 0.0.0.0
+
+# Terminal 2 — deploy verifier + registry, register model #1
+cd contracts
+forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+# Terminal 2 — start the app (docker-compose already passes the ONCHAIN_* variables)
+docker compose up --build
+```
+
+The key above is Anvil's **public** test key #0 — never use it, or any real key, on a real
+network. On a fresh Anvil the registry address is always
+`0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`. Anvil forgets everything on restart, so rerun the
+deploy step after restarting it.
+
+| Variable | Purpose |
+|---|---|
+| `ONCHAIN_ENABLED` | `true` to enable (default off) |
+| `RPC_URL` | `http://host.docker.internal:8545` from Docker, `http://127.0.0.1:8545` otherwise |
+| `REGISTRY_ADDRESS` | printed by the deploy script |
+| `ONCHAIN_PRIVATE_KEY` | account that pays gas (Anvil test key locally) |
+| `EXPLORER_TX_URL` | optional, makes the tx hash a link |
+
+Check the connection at `http://localhost:8000/onchain/status`
+(`"enabled": true, "connected": true, "chain_id": 31337`).
+
+### What you can do in the app
+
+1. Submit an application and click **Generate proof**.
+2. Click **Verify on-chain** — the transaction hash, block and gas used are shown (~0.8M gas).
+3. Click **Try a tampered proof on-chain** — a dry run (`eth_call`, no transaction) in which the
+   contract accepts the real proof and rejects a copy with one flipped byte.
+
+### Limitations
+
+- **Local chain only.** A Sepolia deployment was attempted but contract creation failed there
+  (cause not investigated), so it is left as future work.
+- **Input and output are public**, so this proves model integrity, not applicant privacy.
+- **Score range:** only scores of about 0.17% to 83.5% can be proven.
+- `registerModel` does not yet enforce an owner check.
+
+---
+
 ## 🧪 Testing
 
-The backend has a **33-test** automated suite (`backend/tests/`) covering:
+The backend has a **39-test** automated suite (`backend/tests/`) covering:
 
 - **Auth** — signup success/duplicate-email/weak-password, login success/failure, `/auth/me`
   with valid/missing/garbage tokens
@@ -609,9 +674,13 @@ avoids ever making a real proving call and verifies the missing-`pk.key` path vi
 
 - **Bank dashboard (`/bank`) is currently unauthenticated.** Auth covers the applicant-facing
   side; a bank-employee login/role system is a natural next addition.
-- **On-chain proof submission isn't wired into the app yet.** The full pipeline is manually
-  proven to work end-to-end (see `contracts/README.md`), but the backend doesn't yet
-  automatically submit proofs to a chain.
+- **On-chain verification runs on a local chain only.** The backend can submit proofs to a
+  `LoanApplicationRegistry` on local Anvil (off by default; enable with `ONCHAIN_ENABLED=true`).
+  A Sepolia deployment was attempted but contract creation failed there, so it is future work.
+- **Input and output are public in the circuit.** The proof shows the decision came from the
+  fixed model and was not altered (model integrity). It does not hide the applicant's data.
+- **Supported score range is limited.** The circuit's lookup table only covers scores of
+  roughly 0.17% to 83.5%; applications outside it cannot be proven.
 - **OCR runs in mock mode without a Groq API key**, intentionally — the feature stays
   demoable without requiring every deployer to have a Groq account.
 - **SQLite locally, Postgres in Docker/production** — both via the same `DATABASE_URL`.

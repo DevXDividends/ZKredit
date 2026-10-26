@@ -7,7 +7,10 @@ export function setAuthToken(token) {
 
 async function request(path, options = {}) {
   const isFormData = options.body instanceof FormData;
-  const headers = { ...(isFormData ? {} : { "Content-Type": "application/json" }), ...(options.headers || {}) };
+  const headers = {
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...(options.headers || {}),
+  };
   if (authToken) {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
@@ -21,9 +24,12 @@ async function request(path, options = {}) {
 
 export const api = {
   // Auth
-  signup: (payload) => request("/auth/signup", { method: "POST", body: JSON.stringify(payload) }),
-  login: (payload) => request("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
-  googleAuth: (payload) => request("/auth/google", { method: "POST", body: JSON.stringify(payload) }),
+  signup: (payload) =>
+    request("/auth/signup", { method: "POST", body: JSON.stringify(payload) }),
+  login: (payload) =>
+    request("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
+  googleAuth: (payload) =>
+    request("/auth/google", { method: "POST", body: JSON.stringify(payload) }),
   me: () => request("/auth/me"),
 
   // Applications (all require auth)
@@ -31,14 +37,23 @@ export const api = {
     request("/applications", { method: "POST", body: JSON.stringify(payload) }),
   getApplication: (id) => request(`/applications/${id}`),
   listApplications: () => request("/applications"),
-  generateProof: (id) => request(`/applications/${id}/generate-proof`, { method: "POST" }),
-  runTamperDemo: (id) => request(`/applications/${id}/tamper-demo`, { method: "POST" }),
+  generateProof: (id) =>
+    request(`/applications/${id}/generate-proof`, { method: "POST" }),
+  runTamperDemo: (id) =>
+    request(`/applications/${id}/tamper-demo`, { method: "POST" }),
+  onchainStatus: () => request("/onchain/status"),
+  submitOnchain: (id) => request(`/onchain/${id}/submit`, { method: "POST" }),
+  onchainTamperCheck: (id) =>
+    request(`/onchain/${id}/tamper-check`, { method: "POST" }),
 
   // Loan-application OCR scanner
   extractApplicationPdf: (file) => {
     const formData = new FormData();
     formData.append("file", file);
-    return request("/ocr/extract-application", { method: "POST", body: formData });
+    return request("/ocr/extract-application", {
+      method: "POST",
+      body: formData,
+    });
   },
   generateTestPdf: () => request("/ocr/generate-test-pdf"),
 

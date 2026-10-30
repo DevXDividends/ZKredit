@@ -45,6 +45,8 @@ export const api = {
   submitOnchain: (id) => request(`/onchain/${id}/submit`, { method: "POST" }),
   onchainTamperCheck: (id) =>
     request(`/onchain/${id}/tamper-check`, { method: "POST" }),
+    explainApplication: (id) => request(`/xai/${id}`),
+  explainWhatIf: (payload) => request("/xai/what-if", { method: "POST", body: JSON.stringify(payload) }),
 
   // Loan-application OCR scanner
   extractApplicationPdf: (file) => {

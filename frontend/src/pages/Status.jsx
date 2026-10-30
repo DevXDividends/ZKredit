@@ -9,6 +9,7 @@ import Spinner from "../components/ui/Spinner";
 import LiveLogConsole from "../components/LiveLogConsole";
 import useLiveLog from "../hooks/useLiveLog";
 import OnchainPanel from "../components/OnchainPanel";
+import XaiPanel from "../components/XaiPanel";      
 
 const PROOF_STEPS = [
   { text: "Loading application inputs into circuit witness generator…", type: "info", delay: 250 },
@@ -331,6 +332,7 @@ export default function Status() {
         </motion.div>
       )}
       <OnchainPanel applicationId={id} app={app} onDone={load} />
+            <XaiPanel applicationId={id} />
       <TamperDemo applicationId={id} enabled={canRunTamperDemo} />
     </div>
   );
